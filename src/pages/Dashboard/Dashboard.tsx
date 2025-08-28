@@ -12,7 +12,6 @@ import {
   Card,
 } from '@mantine/core';
 import {
-  IconPlus,
   IconRefresh,
   IconBulb,
   IconTarget,
@@ -20,7 +19,7 @@ import {
   IconTrendingUp,
 } from '@tabler/icons-react';
 import { Task, ProgressEntry } from '@/types';
-import { TaskList, AddTaskModal } from '@/components';
+import { TaskList, AddTaskModal, InlineAddTaskRow } from '@/components';
 import { TaskScheduler } from '@/services/TaskScheduler';
 import { StorageService } from '@/services/StorageService';
 import { NotificationService } from '@/services/NotificationService';
@@ -125,10 +124,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     loadData();
   };
 
-  const handleQuickAdd = () => {
-    setEditingTask(null);
-    setIsAddModalOpen(true);
-  };
+  
 
   const handleEditProgress = (taskId: string, progressId: string, newContent: string) => {
     storage.editTaskProgress(taskId, progressId, newContent);
@@ -190,12 +186,14 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             >
               刷新
             </Button>
-            <Button
-              leftSection={<IconPlus size={16} />}
-              onClick={handleQuickAdd}
-            >
-              添加任务
-            </Button>
+            <InlineAddTaskRow
+              onSubmit={(task) => {
+                storage.saveTask(task);
+                notification.showSuccess('任务已创建');
+                loadData();
+              }}
+              width={520}
+            />
           </Group>
         </Group>
 

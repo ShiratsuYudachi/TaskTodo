@@ -11,7 +11,6 @@ import {
   Badge,
 } from '@mantine/core';
 import {
-  IconPlus,
   IconRefresh,
   IconArchive,
   IconCheck,
@@ -19,7 +18,7 @@ import {
   IconTarget,
 } from '@tabler/icons-react';
 import { Task } from '@/types';
-import { TaskList, AddTaskModal } from '@/components';
+import { TaskList, AddTaskModal, InlineAddTaskRow } from '@/components';
 import { StorageService } from '@/services/StorageService';
 import { NotificationService } from '@/services/NotificationService';
 
@@ -164,7 +163,7 @@ export function TaskLibrary() {
               管理所有任务，查看完整历史记录
             </Text>
           </div>
-          <Group gap="sm">
+          <Group gap="sm" align="center">
             <Button
               leftSection={<IconRefresh size={16} />}
               variant="subtle"
@@ -172,15 +171,14 @@ export function TaskLibrary() {
             >
               刷新
             </Button>
-            <Button
-              leftSection={<IconPlus size={16} />}
-              onClick={() => {
-                setEditingTask(null);
-                setIsAddModalOpen(true);
+            <InlineAddTaskRow
+              onSubmit={(task) => {
+                storage.saveTask(task);
+                notification.showSuccess('任务已创建');
+                loadTasks();
               }}
-            >
-              添加任务
-            </Button>
+              width={520}
+            />
           </Group>
         </Group>
 
