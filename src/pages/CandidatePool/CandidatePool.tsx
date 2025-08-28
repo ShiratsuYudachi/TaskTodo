@@ -79,20 +79,16 @@ export function CandidatePool() {
     setFilteredCandidates(filtered);
   }, [candidates, searchQuery, priorityFilter, statusFilter, sortBy]);
 
-  const handleTaskStatusChange = (taskId: string, status: Task['status']) => {
+  const handleCompleteTask = (taskId: string) => {
+    scheduler.completeTask(taskId);
     const state = storage.load();
     const task = state.tasks.find(t => t.id === taskId);
     
     if (task) {
-      task.status = status;
-      if (status === 'completed') {
-        task.progress = '任务已完成';
-        notification.showSuccess(`任务"${task.title}"已完成！`);
-      }
-      
-      storage.saveTask(task);
-      loadCandidates();
+      notification.showSuccess(`任务"${task.title}"已完成！`);
     }
+    
+    loadCandidates();
   };
 
   const handleEditTask = (task: Task) => {
@@ -290,7 +286,7 @@ export function CandidatePool() {
               "没有符合条件的任务"}
             onEdit={handleEditTask}
             onDelete={handleDeleteTask}
-            onStatusChange={handleTaskStatusChange}
+            onComplete={handleCompleteTask}
             onAddToPlanned={handleAddToPlanned}
           />
         </Paper>

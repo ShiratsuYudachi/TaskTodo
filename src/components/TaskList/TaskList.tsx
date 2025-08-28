@@ -1,6 +1,6 @@
 import { Stack, Text, Group, ActionIcon, Tooltip } from '@mantine/core';
 import { IconPlus, IconRefresh } from '@tabler/icons-react';
-import { Task } from '@/types';
+import { Task, ProgressEntry } from '@/types';
 import { TaskCard } from '../TaskCard';
 
 interface TaskListProps {
@@ -9,7 +9,8 @@ interface TaskListProps {
   emptyText?: string;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
-  onStatusChange?: (taskId: string, status: Task['status']) => void;
+  onComplete?: (taskId: string) => void;
+  onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void;
   onAddToPlanned?: (taskId: string) => void;
   onRefresh?: () => void;
   onAddNew?: () => void;
@@ -23,7 +24,8 @@ export function TaskList({
   emptyText = '暂无任务',
   onEdit,
   onDelete,
-  onStatusChange,
+  onComplete,
+  onDeferTask,
   onAddToPlanned,
   onRefresh,
   onAddNew,
@@ -73,7 +75,8 @@ export function TaskList({
               task={task}
               onEdit={onEdit}
               onDelete={onDelete}
-              onStatusChange={onStatusChange}
+              onComplete={onComplete}
+              onDeferTask={onDeferTask}
               onAddToPlanned={onAddToPlanned}
               showActions={showActions}
               compact={compact}

@@ -41,8 +41,8 @@ export function Statistics() {
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const completedTasks = allTasks.filter(t => t.status === 'completed');
-    const inProgressTasks = allTasks.filter(t => t.status === 'in_progress');
     const todoTasks = allTasks.filter(t => t.status === 'todo');
+    const inProgressTasks = allTasks.filter(t => state.plannedTasks.includes(t.id) && t.status === 'todo');
     const overdueTasks = allTasks.filter(t => 
       t.deadline && t.deadline < now && t.status !== 'completed'
     );

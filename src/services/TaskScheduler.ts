@@ -25,16 +25,13 @@ export class TaskScheduler {
       // 排除有未满足条件的任务
       if (task.conditions && task.conditions.length > 0) return false;
       
-      // 排除deadline已过的任务（可以选择是否包含）
-      // if (task.deadline && task.deadline < now) return false;
-      
       return true;
     });
   }
 
   /**
    * 计算任务优先级分数
-   * 考虑：基础优先级、截止时间紧急程度、饥饿问题、持续时间
+   * 考虑：基础优先级、截止时间紧急程度、饥饿问题、持续时间、近期活跃度
    */
   private calculateTaskScore(task: Task, config: SchedulingConfig): number {
     const now = new Date();
@@ -75,12 +72,31 @@ export class TaskScheduler {
       }
     }
 
-    // 进行中的任务优先级更高
-    if (task.status === 'in_progress') {
-      score += 15;
+    // 🔥 近期活跃度惩罚：降低刚做过的任务优先级
+    if (task.lastWorkedOn) {
+      const daysSinceLastWorked = Math.ceil((now.getTime() - task.lastWorkedOn.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceLastWorked <= 1) {
+        score -= 8; // 昨天刚做过，大幅降低优先级
+      } else if (daysSinceLastWorked <= 3) {
+        score -= 5; // 3天内做过，中等降低
+      } else if (daysSinceLastWorked <= 7) {
+        score -= 2; // 一周内做过，轻微降低
+      }
     }
 
-    return score;
+    // 有进度记录的任务稍微降低优先级（表示已经开始过）
+    if (task.progressHistory && task.progressHistory.length > 0) {
+      const latestProgress = task.progressHistory[task.progressHistory.length - 1];
+      const daysSinceLatestProgress = Math.ceil((now.getTime() - latestProgress.timestamp.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceLatestProgress <= 2) {
+        score -= 3; // 近期有进展，稍微降低优先级
+      }
+    }
+
+    // 确保分数不为负数
+    return Math.max(0, score);
   }
 
   /**
@@ -175,6 +191,52 @@ export class TaskScheduler {
   }
 
   /**
+   * 暂存任务（记录进度并从今日计划移除）
+   */
+  deferTask(taskId: string, progressEntry: { id: string; content: string; timestamp: Date; sessionDuration?: number }): void {
+    const state = this.storage.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+      // 确保progressHistory存在
+      if (!task.progressHistory) {
+        task.progressHistory = [];
+      }
+      
+      // 添加进度记录
+      task.progressHistory.push(progressEntry);
+      
+      // 更新最后工作时间
+      task.lastWorkedOn = new Date();
+      task.updatedAt = new Date();
+      
+      // 保存任务
+      this.storage.saveTask(task);
+      
+      // 从今日计划中移除
+      this.removeFromPlannedTasks(taskId);
+    }
+  }
+
+  /**
+   * 完成任务
+   */
+  completeTask(taskId: string): void {
+    const state = this.storage.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+      task.status = 'completed';
+      task.updatedAt = new Date();
+      
+      // 从今日计划中移除
+      this.removeFromPlannedTasks(taskId);
+      
+      this.storage.saveTask(task);
+    }
+  }
+
+  /**
    * 自动调度：清理过期计划并推荐新任务
    */
   autoSchedule(): void {
@@ -190,8 +252,8 @@ export class TaskScheduler {
         const scheduledDate = new Date(task.scheduledDate.getFullYear(), 
           task.scheduledDate.getMonth(), task.scheduledDate.getDate());
         
-        // 保留今天的任务和进行中的任务
-        if (scheduledDate.getTime() === today.getTime() || task.status === 'in_progress') {
+        // 保留今天的任务
+        if (scheduledDate.getTime() === today.getTime()) {
           tasksToKeep.push(taskId);
         }
       }

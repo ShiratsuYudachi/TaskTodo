@@ -34,6 +34,11 @@ export class StorageService {
           deadline: task.deadline ? new Date(task.deadline) : undefined,
           scheduledDate: task.scheduledDate ? new Date(task.scheduledDate) : undefined,
           lastScheduled: task.lastScheduled ? new Date(task.lastScheduled) : undefined,
+          lastWorkedOn: task.lastWorkedOn ? new Date(task.lastWorkedOn) : undefined,
+          progressHistory: task.progressHistory ? task.progressHistory.map((entry: any) => ({
+            ...entry,
+            timestamp: new Date(entry.timestamp),
+          })) : [],
         })) || [],
         events: parsed.events?.map((event: any) => ({
           ...event,

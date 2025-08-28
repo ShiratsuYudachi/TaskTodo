@@ -19,7 +19,7 @@ import {
   IconClock,
   IconTrendingUp,
 } from '@tabler/icons-react';
-import { Task } from '@/types';
+import { Task, ProgressEntry } from '@/types';
 import { TaskList, AddTaskModal } from '@/components';
 import { TaskScheduler } from '@/services/TaskScheduler';
 import { StorageService } from '@/services/StorageService';
@@ -65,7 +65,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     setStats({
       totalTasks: allTasks.length,
       completedTasks: allTasks.filter(t => t.status === 'completed').length,
-      inProgressTasks: allTasks.filter(t => t.status === 'in_progress').length,
+      inProgressTasks: state.plannedTasks.length, // 今日计划任务数量作为"进行中"
       overdueTaskCount: allTasks.filter(t => 
         t.deadline && t.deadline < now && t.status !== 'completed'
       ).length,
@@ -76,22 +76,28 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     loadData();
   }, []);
 
-  const handleTaskStatusChange = (taskId: string, status: Task['status']) => {
+  const handleCompleteTask = (taskId: string) => {
+    scheduler.completeTask(taskId);
     const state = storage.load();
     const task = state.tasks.find(t => t.id === taskId);
     
     if (task) {
-      task.status = status;
-      if (status === 'completed') {
-        task.progress = '任务已完成';
-        notification.showSuccess(`任务"${task.title}"已完成！`);
-      } else if (status === 'in_progress') {
-        notification.showInfo(`开始执行任务"${task.title}"`);
-      }
-      
-      storage.saveTask(task);
-      loadData();
+      notification.showSuccess(`任务"${task.title}"已完成！`);
     }
+    
+    loadData();
+  };
+
+  const handleDeferTask = (taskId: string, progressEntry: ProgressEntry) => {
+    scheduler.deferTask(taskId, progressEntry);
+    const state = storage.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+      notification.showInfo(`任务"${task.title}"的进度已记录，移出今日计划`);
+    }
+    
+    loadData();
   };
 
   const handleEditTask = (task: Task) => {
@@ -220,7 +226,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 emptyText="今日暂无计划任务，试试从候选池添加一些任务吧！"
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
-                onStatusChange={handleTaskStatusChange}
+                onComplete={handleCompleteTask}
+                onDeferTask={handleDeferTask}
                 onRefresh={loadData}
                 onAddNew={() => onNavigate('candidate')}
               />

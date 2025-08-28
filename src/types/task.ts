@@ -8,15 +8,23 @@ export interface BaseItem {
   tags: string[];
 }
 
+export interface ProgressEntry {
+  id: string;
+  content: string;
+  timestamp: Date;
+  sessionDuration?: number; // 本次工作时长(分钟)
+}
+
 export interface Task extends BaseItem {
   type: 'task';
-  status: 'todo' | 'in_progress' | 'completed';
+  status: 'todo' | 'completed'; // 移除in_progress，改为通过scheduledDate判断
   deadline?: Date;
   duration: 'short' | 'medium' | 'long' | 'ongoing';
-  progress?: string; // 记录完成了什么
+  progressHistory: ProgressEntry[]; // 进度历史记录
   conditions?: string[]; // await的条件
   scheduledDate?: Date; // 被调度到计划清单的日期
-  lastScheduled?: Date; // 上次被调度的时间（用于防止饥饿）
+  lastScheduled?: Date; // 上次被调度的时间
+  lastWorkedOn?: Date; // 最后一次工作时间（用于降低近期活跃任务优先级）
 }
 
 export interface Event extends BaseItem {

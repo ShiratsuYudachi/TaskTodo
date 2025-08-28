@@ -41,15 +41,13 @@ export function TaskLibrary() {
     loadTasks();
   }, []);
 
-  const handleTaskStatusChange = (taskId: string, status: Task['status']) => {
+  const handleCompleteTask = (taskId: string) => {
     const task = allTasks.find(t => t.id === taskId);
     
     if (task) {
-      task.status = status;
-      if (status === 'completed') {
-        task.progress = '任务已完成';
-        notification.showSuccess(`任务"${task.title}"已完成！`);
-      }
+      task.status = 'completed';
+      task.updatedAt = new Date();
+      notification.showSuccess(`任务"${task.title}"已完成！`);
       
       storage.saveTask(task);
       loadTasks();
@@ -74,8 +72,18 @@ export function TaskLibrary() {
     loadTasks();
   };
 
-  const getTasksByStatus = (status: Task['status']) => {
-    return allTasks.filter(task => task.status === status);
+  const getTasksByStatus = (status: 'todo' | 'completed' | 'in_plan') => {
+    if (status === 'todo') {
+      return allTasks.filter(task => task.status === 'todo');
+    } else if (status === 'completed') {
+      return allTasks.filter(task => task.status === 'completed');
+    } else if (status === 'in_plan') {
+      const state = storage.load();
+      return allTasks.filter(task => 
+        state.plannedTasks.includes(task.id) && task.status === 'todo'
+      );
+    }
+    return [];
   };
 
   const getTasksWithDeadline = () => {
@@ -95,9 +103,9 @@ export function TaskLibrary() {
         tasks = getTasksByStatus('todo');
         emptyText = '没有待办任务';
         break;
-      case 'in_progress':
-        tasks = getTasksByStatus('in_progress');
-        emptyText = '没有进行中的任务';
+      case 'in_plan':
+        tasks = getTasksByStatus('in_plan');
+        emptyText = '没有计划中的任务';
         break;
       case 'completed':
         tasks = getTasksByStatus('completed');
@@ -121,7 +129,7 @@ export function TaskLibrary() {
         emptyText={emptyText}
         onEdit={handleEditTask}
         onDelete={handleDeleteTask}
-        onStatusChange={handleTaskStatusChange}
+        onComplete={handleCompleteTask}
       />
     );
   };
@@ -199,10 +207,10 @@ export function TaskLibrary() {
               <Group justify="space-between">
                 <div>
                   <Text c="dimmed" size="sm" fw={500}>
-                    进行中
+                    计划中
                   </Text>
                   <Text size="xl" fw={700}>
-                    {getTasksByStatus('in_progress').length}
+                    {getTasksByStatus('in_plan').length}
                   </Text>
                 </div>
                 <IconTarget size={24} color="blue" />
@@ -242,10 +250,10 @@ export function TaskLibrary() {
                   {getTasksByStatus('todo').length}
                 </Badge>
               </Tabs.Tab>
-              <Tabs.Tab value="in_progress" leftSection={<IconTarget size={16} />}>
-                进行中
+              <Tabs.Tab value="in_plan" leftSection={<IconTarget size={16} />}>
+                计划中
                 <Badge size="sm" ml="xs">
-                  {getTasksByStatus('in_progress').length}
+                  {getTasksByStatus('in_plan').length}
                 </Badge>
               </Tabs.Tab>
               <Tabs.Tab value="completed" leftSection={<IconCheck size={16} />}>

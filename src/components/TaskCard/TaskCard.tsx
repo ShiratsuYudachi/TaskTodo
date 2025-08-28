@@ -1,21 +1,26 @@
+import { useState } from 'react';
 import {
   Card,
   Group,
   Text,
   Badge,
+  Button,
+  TextInput,
+  Stack,
+  Collapse,
   ActionIcon,
-  Menu,
+  Tooltip,
 } from '@mantine/core';
 import {
-  IconDots,
+  IconCheck,
+  IconClock,
+  IconChevronDown,
+  IconChevronUp,
   IconEdit,
   IconTrash,
-  IconFlag,
-  IconPlayerStop,
-  IconCheck,
   IconCalendar,
 } from '@tabler/icons-react';
-import { Task } from '@/types';
+import { Task, ProgressEntry } from '@/types';
 import {
   getPriorityLabel,
   getPriorityColor,
@@ -25,13 +30,17 @@ import {
   isTaskOverdue,
   getDaysUntilDeadline,
   formatDate,
+  getProgressCount,
+  isInTodayPlan,
+  createProgressEntry,
 } from '@/utils/taskUtils';
 
 interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
-  onStatusChange?: (taskId: string, status: Task['status']) => void;
+  onComplete?: (taskId: string) => void;
+  onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void; // 暂存任务
   onAddToPlanned?: (taskId: string) => void;
   showActions?: boolean;
   compact?: boolean;
@@ -41,16 +50,33 @@ export function TaskCard({
   task,
   onEdit,
   onDelete,
-  onStatusChange,
+  onComplete,
+  onDeferTask,
   onAddToPlanned,
   showActions = true,
   compact = false,
 }: TaskCardProps) {
+  const [progressInput, setProgressInput] = useState('');
+  const [showProgressHistory, setShowProgressHistory] = useState(false);
+  
   const isOverdue = isTaskOverdue(task);
   const daysUntilDeadline = task.deadline ? getDaysUntilDeadline(task.deadline) : null;
+  const isCompleted = task.status === 'completed';
+  const inTodayPlan = isInTodayPlan(task);
+  const progressCount = getProgressCount(task);
 
-  const handleStatusChange = (newStatus: Task['status']) => {
-    onStatusChange?.(task.id, newStatus);
+  const handleProgressSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!progressInput.trim() || !onDeferTask) return;
+    
+    const progressEntry = createProgressEntry(progressInput.trim());
+    onDeferTask(task.id, progressEntry);
+    setProgressInput('');
+  };
+
+  const handleCompleteTask = () => {
+    if (!onComplete) return;
+    onComplete(task.id);
   };
 
   const renderDeadlineInfo = () => {
@@ -83,6 +109,44 @@ export function TaskCard({
     );
   };
 
+  const renderProgressHistory = () => {
+    if (task.progressHistory.length === 0) {
+      return (
+        <Text size="xs" c="dimmed" ta="center" py="sm">
+          还没有进度记录
+        </Text>
+      );
+    }
+
+    return (
+      <Stack gap="xs" mt="sm">
+        {task.progressHistory.slice(-3).reverse().map((entry) => (
+          <Card key={entry.id} padding="xs" withBorder radius="sm" bg="gray.0">
+            <Group justify="space-between" align="flex-start">
+              <Text size="xs" style={{ flex: 1 }}>
+                {entry.content}
+              </Text>
+              <Text size="xs" c="dimmed">
+                {new Date(entry.timestamp).toLocaleDateString('zh-CN', {
+                  month: 'numeric',
+                  day: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </Group>
+          </Card>
+        ))}
+        
+        {task.progressHistory.length > 3 && (
+          <Text size="xs" c="dimmed" ta="center">
+            共 {task.progressHistory.length} 条记录，显示最近 3 条
+          </Text>
+        )}
+      </Stack>
+    );
+  };
+
   return (
     <Card
       shadow="sm"
@@ -91,9 +155,10 @@ export function TaskCard({
       withBorder
       className={`transition-all duration-200 hover:shadow-md ${
         isOverdue ? 'border-red-300 bg-red-50' : ''
-      }`}
+      } ${isCompleted ? 'opacity-60' : ''}`}
     >
-      <Card.Section inheritPadding py="sm">
+      <Stack gap="sm">
+        {/* 任务头部信息 */}
         <Group justify="space-between" align="flex-start">
           <div className="flex-1 min-w-0">
             <Group gap="xs" mb="xs">
@@ -106,14 +171,20 @@ export function TaskCard({
               </Badge>
               <Badge
                 size="xs"
-                color={getStatusColor(task.status)}
+                color={getStatusColor(task)}
                 variant="filled"
               >
-                {getStatusLabel(task.status)}
+                {getStatusLabel(task)}
               </Badge>
               <Badge size="xs" variant="outline">
                 {getDurationLabel(task.duration)}
               </Badge>
+              
+              {progressCount > 0 && (
+                <Badge size="xs" color="blue" variant="dot">
+                  {progressCount} 次进展
+                </Badge>
+              )}
             </Group>
 
             <Text fw={600} size={compact ? "sm" : "md"} className="truncate">
@@ -124,14 +195,6 @@ export function TaskCard({
               <Text size="sm" c="dimmed" lineClamp={2} mt="xs">
                 {task.description}
               </Text>
-            )}
-
-            {task.progress && (
-              <div className="mt-2">
-                <Text size="xs" c="dimmed" mb="xs">
-                  进度：{task.progress}
-                </Text>
-              </div>
             )}
 
             {task.tags.length > 0 && (
@@ -147,76 +210,118 @@ export function TaskCard({
             {renderDeadlineInfo()}
           </div>
 
+          {/* 编辑和删除操作 */}
           {showActions && (
-            <Menu shadow="md" width={200}>
-              <Menu.Target>
-                <ActionIcon variant="subtle" size="sm">
-                  <IconDots size={16} />
-                </ActionIcon>
-              </Menu.Target>
-
-              <Menu.Dropdown>
-                {task.status !== 'in_progress' && (
-                  <Menu.Item
-                    leftSection={<IconPlayerStop size={14} />}
-                    onClick={() => handleStatusChange('in_progress')}
-                  >
-                    开始任务
-                  </Menu.Item>
-                )}
-
-                {task.status !== 'completed' && (
-                  <Menu.Item
-                    leftSection={<IconCheck size={14} />}
-                    onClick={() => handleStatusChange('completed')}
-                  >
-                    标记完成
-                  </Menu.Item>
-                )}
-
-                {task.status !== 'todo' && (
-                  <Menu.Item
-                    leftSection={<IconFlag size={14} />}
-                    onClick={() => handleStatusChange('todo')}
-                  >
-                    重置为待办
-                  </Menu.Item>
-                )}
-
-                <Menu.Divider />
-
-                {onAddToPlanned && (
-                  <Menu.Item
-                    leftSection={<IconCalendar size={14} />}
-                    onClick={() => onAddToPlanned(task.id)}
-                  >
-                    添加到今日计划
-                  </Menu.Item>
-                )}
-
-                {onEdit && (
-                  <Menu.Item
-                    leftSection={<IconEdit size={14} />}
+            <Group gap="xs">
+              {onEdit && (
+                <Tooltip label="编辑任务">
+                  <ActionIcon 
+                    variant="subtle" 
+                    size="sm"
                     onClick={() => onEdit(task)}
                   >
-                    编辑
-                  </Menu.Item>
-                )}
-
-                {onDelete && (
-                  <Menu.Item
+                    <IconEdit size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+              
+              {onDelete && (
+                <Tooltip label="删除任务">
+                  <ActionIcon 
+                    variant="subtle" 
+                    size="sm" 
                     color="red"
-                    leftSection={<IconTrash size={14} />}
                     onClick={() => onDelete(task.id)}
                   >
-                    删除
-                  </Menu.Item>
-                )}
-              </Menu.Dropdown>
-            </Menu>
+                    <IconTrash size={14} />
+                  </ActionIcon>
+                </Tooltip>
+              )}
+            </Group>
           )}
         </Group>
-      </Card.Section>
+
+        {/* 进度输入区域 - 仅在未完成且在今日计划中时显示 */}
+        {!isCompleted && inTodayPlan && (
+          <form onSubmit={handleProgressSubmit}>
+            <TextInput
+              placeholder="记录今日进展，回车保存..."
+              value={progressInput}
+              onChange={(e) => setProgressInput(e.target.value)}
+              size="sm"
+              leftSection={<IconClock size={14} />}
+            />
+          </form>
+        )}
+
+        {/* 进度历史展示控制 */}
+        {progressCount > 0 && (
+          <Group justify="space-between">
+            <Button
+              variant="subtle"
+              size="xs"
+              leftSection={showProgressHistory ? <IconChevronUp size={14} /> : <IconChevronDown size={14} />}
+              onClick={() => setShowProgressHistory(!showProgressHistory)}
+            >
+              进度记录 ({progressCount})
+            </Button>
+          </Group>
+        )}
+
+        <Collapse in={showProgressHistory}>
+          {renderProgressHistory()}
+        </Collapse>
+
+        {/* 主要操作按钮 */}
+        {showActions && !isCompleted && (
+          <Group justify="flex-end" gap="sm">
+            {/* 添加到今日计划按钮 */}
+            {!inTodayPlan && onAddToPlanned && (
+              <Button
+                size="xs"
+                variant="light"
+                leftSection={<IconCalendar size={14} />}
+                onClick={() => onAddToPlanned(task.id)}
+              >
+                加入计划
+              </Button>
+            )}
+            
+            {/* 暂存按钮 - 仅在今日计划中显示 */}
+            {inTodayPlan && onDeferTask && (
+              <Button
+                size="xs"
+                variant="outline"
+                leftSection={<IconClock size={14} />}
+                onClick={() => {
+                  if (progressInput.trim()) {
+                    // 如果有输入内容，保存进度并暂存
+                    const progressEntry = createProgressEntry(progressInput.trim());
+                    onDeferTask(task.id, progressEntry);
+                    setProgressInput('');
+                  } else {
+                    // 没有输入内容，直接暂存
+                    const progressEntry = createProgressEntry('今日部分完成');
+                    onDeferTask(task.id, progressEntry);
+                  }
+                }}
+              >
+                今日完成
+              </Button>
+            )}
+
+            {/* 完成按钮 */}
+            <Button
+              size="xs"
+              color="green"
+              leftSection={<IconCheck size={14} />}
+              onClick={handleCompleteTask}
+            >
+              完成任务
+            </Button>
+          </Group>
+        )}
+      </Stack>
     </Card>
   );
 }

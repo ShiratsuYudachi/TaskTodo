@@ -1,4 +1,4 @@
-import { Task, Event } from '@/types';
+import { Task, Event, ProgressEntry } from '@/types';
 import { nanoid } from 'nanoid';
 
 /**
@@ -16,12 +16,24 @@ export function createTask(data: Partial<Task>): Task {
     status: data.status || 'todo',
     duration: data.duration || 'medium',
     tags: data.tags || [],
+    progressHistory: data.progressHistory || [],
     createdAt: now,
     updatedAt: now,
     deadline: data.deadline,
-    progress: data.progress,
     conditions: data.conditions,
     ...data,
+  };
+}
+
+/**
+ * 创建进度记录
+ */
+export function createProgressEntry(content: string, sessionDuration?: number): ProgressEntry {
+  return {
+    id: nanoid(),
+    content: content.trim(),
+    timestamp: new Date(),
+    sessionDuration,
   };
 }
 
@@ -86,27 +98,53 @@ export function getDurationLabel(duration: Task['duration']): string {
 }
 
 /**
- * 获取任务状态标签
+ * 获取任务状态标签（基于状态和进度）
  */
-export function getStatusLabel(status: Task['status']): string {
-  const labels: Record<Task['status'], string> = {
-    todo: '待开始',
-    in_progress: '进行中',
-    completed: '已完成',
-  };
-  return labels[status];
+export function getStatusLabel(task: Task): string {
+  if (task.status === 'completed') return '已完成';
+  if (task.scheduledDate && isToday(task.scheduledDate)) return '今日计划';
+  if (task.progressHistory && task.progressHistory.length > 0) return '有进展';
+  return '待开始';
 }
 
 /**
  * 获取任务状态颜色
  */
-export function getStatusColor(status: Task['status']): string {
-  const colors: Record<Task['status'], string> = {
-    todo: 'gray',
-    in_progress: 'blue',
-    completed: 'green',
-  };
-  return colors[status];
+export function getStatusColor(task: Task): string {
+  if (task.status === 'completed') return 'green';
+  if (task.scheduledDate && isToday(task.scheduledDate)) return 'blue';
+  if (task.progressHistory && task.progressHistory.length > 0) return 'cyan';
+  return 'gray';
+}
+
+/**
+ * 判断是否为今天
+ */
+function isToday(date: Date): boolean {
+  const today = new Date();
+  return date.toDateString() === today.toDateString();
+}
+
+/**
+ * 获取任务最新进度
+ */
+export function getLatestProgress(task: Task): string {
+  if (!task.progressHistory || task.progressHistory.length === 0) return '';
+  return task.progressHistory[task.progressHistory.length - 1].content;
+}
+
+/**
+ * 获取任务总进度数量
+ */
+export function getProgressCount(task: Task): number {
+  return task.progressHistory ? task.progressHistory.length : 0;
+}
+
+/**
+ * 判断任务是否在今日计划中
+ */
+export function isInTodayPlan(task: Task): boolean {
+  return !!(task.scheduledDate && isToday(task.scheduledDate));
 }
 
 /**
@@ -178,7 +216,7 @@ export function filterTasks(
   tasks: Task[],
   filters: {
     search?: string;
-    status?: Task['status'][];
+    status?: ('todo' | 'completed' | 'in_plan' | 'has_progress')[];
     priority?: number[];
     duration?: Task['duration'][];
     tags?: string[];
@@ -190,15 +228,25 @@ export function filterTasks(
     // 搜索过滤
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
+      const progressText = task.progressHistory ? 
+        task.progressHistory.map(p => p.content).join(' ') : '';
       if (!task.title.toLowerCase().includes(searchLower) &&
-          !task.description?.toLowerCase().includes(searchLower)) {
+          !task.description?.toLowerCase().includes(searchLower) &&
+          !progressText.toLowerCase().includes(searchLower)) {
         return false;
       }
     }
 
-    // 状态过滤
+    // 状态过滤（扩展状态概念）
     if (filters.status && filters.status.length > 0) {
-      if (!filters.status.includes(task.status)) return false;
+      const taskStatuses: string[] = [];
+      
+      if (task.status === 'todo') taskStatuses.push('todo');
+      if (task.status === 'completed') taskStatuses.push('completed');
+      if (isInTodayPlan(task)) taskStatuses.push('in_plan');
+      if (task.progressHistory && task.progressHistory.length > 0) taskStatuses.push('has_progress');
+      
+      if (!filters.status.some(status => taskStatuses.includes(status))) return false;
     }
 
     // 优先级过滤
