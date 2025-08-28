@@ -10,6 +10,7 @@ import {
   Badge,
   ActionIcon,
   Card,
+  MultiSelect,
 } from '@mantine/core';
 import {
   IconRefresh,
@@ -40,8 +41,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     inProgressTasks: 0,
     overdueTaskCount: 0,
   });
-  // 预留标签筛选（暂未呈现UI），保留为将来扩展
-  const [tagFilter] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
 
   const scheduler = new TaskScheduler();
   const storage = new StorageService();
@@ -80,6 +80,10 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   useEffect(() => {
     loadData();
   }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [tagFilter]);
 
   
 
@@ -175,11 +179,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             </Text>
           </div>
           <Group gap="sm">
-            <Button
-              leftSection={<IconRefresh size={16} />}
-              variant="subtle"
-              onClick={loadData}
-            >
+            <Button leftSection={<IconRefresh size={16} />} variant="subtle" onClick={loadData}>
               刷新
             </Button>
             {/* 标签筛选（简版）可后续挪到设置区 */}
@@ -281,18 +281,25 @@ export function Dashboard({ onNavigate }: DashboardProps) {
           {/* 推荐任务 */}
           <Grid.Col span={{ base: 12, md: 4 }}>
             <Paper shadow="sm" p="md" withBorder>
-              <Group justify="space-between" mb="md">
-                <Group gap="xs">
+              <Group justify="space-between" mb="md" align="center">
+                <Group gap="xs" align="center">
                   <IconBulb size={20} />
                   <Text fw={600}>智能推荐</Text>
                 </Group>
-                <Button
-                  size="xs"
-                  variant="subtle"
-                  onClick={() => onNavigate('candidate')}
-                >
-                  查看更多
-                </Button>
+                <Group gap="xs" align="center">
+                  <MultiSelect
+                    placeholder="按标签筛选"
+                    data={storage.getAllTags()}
+                    value={tagFilter}
+                    onChange={setTagFilter}
+                    searchable
+                    clearable
+                    style={{ minWidth: '200px' }}
+                  />
+                  <Button size="xs" variant="subtle" onClick={() => onNavigate('candidate')}>
+                    查看更多
+                  </Button>
+                </Group>
               </Group>
               
               {recommendedTasks.length === 0 ? (
