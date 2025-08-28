@@ -25,6 +25,7 @@ import { TaskScheduler } from '@/services/TaskScheduler';
 import { StorageService } from '@/services/StorageService';
 import { NotificationService } from '@/services/NotificationService';
 import { filterTasks } from '@/utils/taskUtils';
+import { createSubTask } from '@/utils/taskUtils';
 
 export function CandidatePool() {
   const [candidates, setCandidates] = useState<Task[]>([]);
@@ -302,6 +303,21 @@ export function CandidatePool() {
             onAddToPlanned={handleAddToPlanned}
             onEditProgress={handleEditProgress}
             onDeleteProgress={handleDeleteProgress}
+            onAddSubtask={(taskId, title) => {
+              const st = createSubTask(title);
+              storage.addSubTask(taskId, st);
+              notification.showSuccess('子任务已创建');
+              loadCandidates();
+            }}
+            onToggleSubtask={(taskId, subtaskId, completed) => {
+              storage.toggleSubTask(taskId, subtaskId, completed);
+              loadCandidates();
+            }}
+            onDeleteSubtask={(taskId, subtaskId) => {
+              storage.deleteSubTask(taskId, subtaskId);
+              notification.showInfo('子任务已删除');
+              loadCandidates();
+            }}
           />
         </Paper>
       </Stack>

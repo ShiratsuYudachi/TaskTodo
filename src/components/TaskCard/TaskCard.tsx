@@ -45,6 +45,10 @@ interface TaskCardProps {
   onAddToPlanned?: (taskId: string) => void;
   onEditProgress?: (taskId: string, progressId: string, newContent: string) => void;
   onDeleteProgress?: (taskId: string, progressId: string) => void;
+  onAddSubtask?: (taskId: string, title: string) => void;
+  onToggleSubtask?: (taskId: string, subtaskId: string, completed: boolean) => void;
+  onDeleteSubtask?: (taskId: string, subtaskId: string) => void;
+  onEditSubtask?: (taskId: string, subtaskId: string, newTitle: string) => void;
   showActions?: boolean;
   compact?: boolean;
 }
@@ -56,15 +60,21 @@ export function TaskCard({
   onToggleComplete,
   onDeferTask,
   onAddToPlanned,
-  onEditProgress,
-  onDeleteProgress,
+  // 兼容旧签名（未使用）
+  onEditProgress: _onEditProgress,
+  onDeleteProgress: _onDeleteProgress,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  // 预留编辑子任务但暂未启用
+  onEditSubtask: _onEditSubtask,
   showActions = true,
   compact = false,
 }: TaskCardProps) {
   const [progressInput, setProgressInput] = useState('');
+  const [subtaskInput, setSubtaskInput] = useState('');
   const [showProgressHistory, setShowProgressHistory] = useState(false);
-  const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
-  const [editingContent, setEditingContent] = useState('');
+  // 旧的进度编辑状态已不需要
   
   const isOverdue = isTaskOverdue(task);
   const daysUntilDeadline = task.deadline ? getDaysUntilDeadline(task.deadline) : null;
@@ -72,13 +82,48 @@ export function TaskCard({
   const inTodayPlan = isInTodayPlan(task);
   const progressCount = getProgressCount(task);
 
-  const handleProgressSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!progressInput.trim() || !onDeferTask) return;
-    
-    const progressEntry = createProgressEntry(progressInput.trim());
-    onDeferTask(task.id, progressEntry);
-    setProgressInput('');
+  // 进度表单已由子任务输入取代
+
+  const renderSubtasks = () => {
+    if (!task.subtasks || task.subtasks.length === 0) return null;
+    const recent = [...task.subtasks].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+    return (
+      <Stack gap="xs">
+        {recent.slice(0, 4).map((st) => (
+          <Group key={st.id} justify="space-between" align="center">
+            <Group gap="xs" align="center" style={{ flex: 1, minWidth: 0 }}>
+              <button
+                aria-label={st.status === 'completed' ? 'Mark subtask as todo' : 'Mark subtask as completed'}
+                onClick={() => onToggleSubtask && onToggleSubtask(task.id, st.id, st.status !== 'completed')}
+                style={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: '50%',
+                  border: `2px solid ${st.status === 'completed' ? '#16a34a' : '#cbd5e1'}`,
+                  background: st.status === 'completed' ? '#16a34a' : 'transparent',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                }}
+              >
+                {st.status === 'completed' && <IconCheck size={10} color="#fff" />}
+              </button>
+              <Text size="sm" c={st.status === 'completed' ? 'dimmed' : undefined} lineClamp={1}>
+                {st.title}
+              </Text>
+            </Group>
+            {showActions && onDeleteSubtask && (
+              <Tooltip label="删除子任务">
+                <ActionIcon size="sm" variant="subtle" color="red" onClick={() => onDeleteSubtask(task.id, st.id)}>
+                  <IconX size={12} />
+                </ActionIcon>
+              </Tooltip>
+            )}
+          </Group>
+        ))}
+      </Stack>
+    );
   };
 
   const handleToggleCircle = () => {
@@ -117,122 +162,9 @@ export function TaskCard({
     );
   };
 
-  const handleStartEditProgress = (progressId: string, currentContent: string) => {
-    setEditingProgressId(progressId);
-    setEditingContent(currentContent);
-  };
+  // 旧的进度编辑函数已移除
 
-  const handleSaveEditProgress = () => {
-    if (editingProgressId && editingContent.trim() && onEditProgress) {
-      onEditProgress(task.id, editingProgressId, editingContent.trim());
-      setEditingProgressId(null);
-      setEditingContent('');
-    }
-  };
-
-  const handleCancelEditProgress = () => {
-    setEditingProgressId(null);
-    setEditingContent('');
-  };
-
-  const handleDeleteProgress = (progressId: string) => {
-    if (onDeleteProgress) {
-      onDeleteProgress(task.id, progressId);
-    }
-  };
-
-  const renderProgressHistory = () => {
-    if (task.progressHistory.length === 0) {
-      return (
-        <Text size="xs" c="dimmed" ta="center" py="sm">
-          还没有进度记录
-        </Text>
-      );
-    }
-
-    return (
-      <Stack gap="xs" mt="sm">
-        {task.progressHistory.slice(-3).reverse().map((entry) => (
-          <Card key={entry.id} padding="xs" withBorder radius="sm" bg="gray.0">
-            {editingProgressId === entry.id ? (
-              // 编辑模式
-              <Stack gap="xs">
-                <TextInput
-                  size="xs"
-                  value={editingContent}
-                  onChange={(e) => setEditingContent(e.target.value)}
-                  placeholder="修改进度记录..."
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      handleSaveEditProgress();
-                    } else if (e.key === 'Escape') {
-                      handleCancelEditProgress();
-                    }
-                  }}
-                  autoFocus
-                />
-                <Group justify="flex-end" gap="xs">
-                  <Button size="xs" variant="light" onClick={handleSaveEditProgress}>
-                    保存
-                  </Button>
-                  <Button size="xs" variant="subtle" onClick={handleCancelEditProgress}>
-                    取消
-                  </Button>
-                </Group>
-              </Stack>
-            ) : (
-              // 显示模式
-              <Group justify="space-between" align="flex-start">
-                <Text size="xs" style={{ flex: 1 }}>
-                  {entry.content}
-                </Text>
-                <Group gap="xs" align="center">
-                  <Text size="xs" c="dimmed">
-                    {new Date(entry.timestamp).toLocaleDateString('zh-CN', {
-                      month: 'numeric',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    })}
-                  </Text>
-                  {showActions && (
-                    <>
-                      <Tooltip label="编辑">
-                        <ActionIcon
-                          size="xs"
-                          variant="subtle"
-                          color="blue"
-                          onClick={() => handleStartEditProgress(entry.id, entry.content)}
-                        >
-                          <IconEdit size={12} />
-                        </ActionIcon>
-                      </Tooltip>
-                      <Tooltip label="删除">
-                        <ActionIcon
-                          size="xs"
-                          variant="subtle"
-                          color="red"
-                          onClick={() => handleDeleteProgress(entry.id)}
-                        >
-                          <IconX size={12} />
-                        </ActionIcon>
-                      </Tooltip>
-                    </>
-                  )}
-                </Group>
-              </Group>
-            )}
-          </Card>
-        ))}
-        
-        {task.progressHistory.length > 3 && (
-          <Text size="xs" c="dimmed" ta="center">
-            共 {task.progressHistory.length} 条记录，显示最近 3 条
-          </Text>
-        )}
-      </Stack>
-    );
-  };
+  // 进度历史渲染已由子任务渲染取代
 
   return (
     <Card
@@ -380,12 +312,17 @@ export function TaskCard({
         </Group>
 
         {/* 进度输入区域 - 仅在未完成且在今日计划中时显示 */}
-        {!isCompleted && inTodayPlan && (
-          <form onSubmit={handleProgressSubmit}>
+        {!isCompleted && (
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            if (!subtaskInput.trim() || !onAddSubtask) return;
+            onAddSubtask(task.id, subtaskInput.trim());
+            setSubtaskInput('');
+          }}>
             <TextInput
-              placeholder="记录今日进展，回车保存..."
-              value={progressInput}
-              onChange={(e) => setProgressInput(e.target.value)}
+              placeholder="添加子任务，回车创建..."
+              value={subtaskInput}
+              onChange={(e) => setSubtaskInput(e.target.value)}
               size="sm"
               leftSection={<IconClock size={14} />}
             />
@@ -407,7 +344,7 @@ export function TaskCard({
         )}
 
         <Collapse in={showProgressHistory}>
-          {renderProgressHistory()}
+          {renderSubtasks()}
         </Collapse>
 
         {/* 底部主要操作区移除：按钮已放到顶部同一行 */}

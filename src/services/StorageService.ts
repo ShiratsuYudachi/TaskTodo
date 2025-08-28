@@ -1,4 +1,4 @@
-import { Task, Event, AppState, SchedulingConfig } from '@/types';
+import { Task, Event, AppState, SchedulingConfig, SubTask } from '@/types';
 
 export class StorageService {
   private readonly STORAGE_KEY = 'task-todo-data';
@@ -38,6 +38,12 @@ export class StorageService {
           progressHistory: task.progressHistory ? task.progressHistory.map((entry: any) => ({
             ...entry,
             timestamp: new Date(entry.timestamp),
+          })) : [],
+          subtasks: task.subtasks ? task.subtasks.map((st: any) => ({
+            ...st,
+            createdAt: new Date(st.createdAt),
+            updatedAt: new Date(st.updatedAt),
+            deadline: st.deadline ? new Date(st.deadline) : undefined,
           })) : [],
         })) || [],
         events: parsed.events?.map((event: any) => ({
@@ -142,5 +148,41 @@ export class StorageService {
       task.updatedAt = new Date();
       this.save(state);
     }
+  }
+
+  // ----- Subtasks CRUD -----
+  addSubTask(taskId: string, subtask: SubTask): void {
+    const state = this.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task) return;
+    if (!task.subtasks) task.subtasks = [];
+    task.subtasks.push(subtask);
+    task.updatedAt = new Date();
+    this.save(state);
+  }
+
+  editSubTask(taskId: string, subtaskId: string, updates: Partial<SubTask>): void {
+    const state = this.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks) return;
+    const st = task.subtasks.find(s => s.id === subtaskId);
+    if (!st) return;
+    Object.assign(st, updates);
+    st.updatedAt = new Date();
+    task.updatedAt = new Date();
+    this.save(state);
+  }
+
+  deleteSubTask(taskId: string, subtaskId: string): void {
+    const state = this.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    if (!task || !task.subtasks) return;
+    task.subtasks = task.subtasks.filter(s => s.id !== subtaskId);
+    task.updatedAt = new Date();
+    this.save(state);
+  }
+
+  toggleSubTask(taskId: string, subtaskId: string, completed: boolean): void {
+    this.editSubTask(taskId, subtaskId, { status: completed ? 'completed' : 'todo' });
   }
 }

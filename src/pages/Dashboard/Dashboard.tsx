@@ -23,6 +23,7 @@ import { TaskList, AddTaskModal, InlineAddTaskRow } from '@/components';
 import { TaskScheduler } from '@/services/TaskScheduler';
 import { StorageService } from '@/services/StorageService';
 import { NotificationService } from '@/services/NotificationService';
+import { createSubTask } from '@/utils/taskUtils';
 
 interface DashboardProps {
   onNavigate: (tab: string) => void;
@@ -240,6 +241,21 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 onDeferTask={handleDeferTask}
                 onEditProgress={handleEditProgress}
                 onDeleteProgress={handleDeleteProgress}
+                onAddSubtask={(taskId, title) => {
+                  const st = createSubTask(title);
+                  storage.addSubTask(taskId, st);
+                  notification.showSuccess('子任务已创建');
+                  loadData();
+                }}
+                onToggleSubtask={(taskId, subtaskId, completed) => {
+                  storage.toggleSubTask(taskId, subtaskId, completed);
+                  loadData();
+                }}
+                onDeleteSubtask={(taskId, subtaskId) => {
+                  storage.deleteSubTask(taskId, subtaskId);
+                  notification.showInfo('子任务已删除');
+                  loadData();
+                }}
                 onRefresh={loadData}
                 onAddNew={() => onNavigate('candidate')}
               />

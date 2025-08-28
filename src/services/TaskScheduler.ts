@@ -191,31 +191,32 @@ export class TaskScheduler {
   }
 
   /**
-   * 暂存任务（记录进度并从今日计划移除）
+   * 暂存任务：创建一个完成的子任务并从今日计划移除
    */
   deferTask(taskId: string, progressEntry: { id: string; content: string; timestamp: Date; sessionDuration?: number }): void {
     const state = this.storage.load();
     const task = state.tasks.find(t => t.id === taskId);
-    
-    if (task) {
-      // 确保progressHistory存在
-      if (!task.progressHistory) {
-        task.progressHistory = [];
-      }
-      
-      // 添加进度记录
-      task.progressHistory.push(progressEntry);
-      
-      // 更新最后工作时间
-      task.lastWorkedOn = new Date();
-      task.updatedAt = new Date();
-      
-      // 保存任务
-      this.storage.saveTask(task);
-      
-      // 从今日计划中移除
-      this.removeFromPlannedTasks(taskId);
-    }
+    if (!task) return;
+
+    const subtask = {
+      id: progressEntry.id,
+      title: progressEntry.content,
+      status: 'completed' as const,
+      createdAt: progressEntry.timestamp,
+      updatedAt: new Date(),
+    };
+
+    this.storage.addSubTask(taskId, subtask);
+
+    // 兼容：也把该条写入历史，方便旧视图仍能看到
+    if (!task.progressHistory) task.progressHistory = [];
+    task.progressHistory.push(progressEntry);
+    task.lastWorkedOn = new Date();
+    task.updatedAt = new Date();
+    this.storage.saveTask(task);
+
+    // 移出今日计划
+    this.removeFromPlannedTasks(taskId);
   }
 
   /**

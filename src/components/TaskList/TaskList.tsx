@@ -14,6 +14,10 @@ interface TaskListProps {
   onAddToPlanned?: (taskId: string) => void;
   onEditProgress?: (taskId: string, progressId: string, newContent: string) => void;
   onDeleteProgress?: (taskId: string, progressId: string) => void;
+  onAddSubtask?: (taskId: string, title: string) => void;
+  onToggleSubtask?: (taskId: string, subtaskId: string, completed: boolean) => void;
+  onDeleteSubtask?: (taskId: string, subtaskId: string) => void;
+  onEditSubtask?: (taskId: string, subtaskId: string, newTitle: string) => void;
   onRefresh?: () => void;
   onAddNew?: () => void;
   showActions?: boolean;
@@ -30,6 +34,10 @@ export function TaskList({
   onAddToPlanned,
   onEditProgress,
   onDeleteProgress,
+  onAddSubtask,
+  onToggleSubtask,
+  onDeleteSubtask,
+  onEditSubtask,
   onRefresh,
   onToggleComplete,
   onAddNew,
@@ -84,6 +92,10 @@ export function TaskList({
               onAddToPlanned={onAddToPlanned}
               onEditProgress={onEditProgress}
               onDeleteProgress={onDeleteProgress}
+              onAddSubtask={onAddSubtask}
+              onToggleSubtask={onToggleSubtask}
+              onDeleteSubtask={onDeleteSubtask}
+              onEditSubtask={onEditSubtask}
               showActions={showActions}
               compact={compact}
             />

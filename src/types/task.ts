@@ -15,12 +15,23 @@ export interface ProgressEntry {
   sessionDuration?: number; // 本次工作时长(分钟)
 }
 
+export interface SubTask {
+  id: string;
+  title: string;
+  status: 'todo' | 'completed';
+  createdAt: Date;
+  updatedAt: Date;
+  deadline?: Date;
+  priority?: number;
+}
+
 export interface Task extends BaseItem {
   type: 'task';
   status: 'todo' | 'completed'; // 移除in_progress，改为通过scheduledDate判断
   deadline?: Date;
   duration: 'short' | 'medium' | 'long' | 'ongoing';
   progressHistory: ProgressEntry[]; // 进度历史记录
+  subtasks?: SubTask[]; // 子任务列表
   conditions?: string[]; // await的条件
   scheduledDate?: Date; // 被调度到计划清单的日期
   lastScheduled?: Date; // 上次被调度的时间

@@ -21,6 +21,7 @@ import { Task } from '@/types';
 import { TaskList, AddTaskModal, InlineAddTaskRow } from '@/components';
 import { StorageService } from '@/services/StorageService';
 import { NotificationService } from '@/services/NotificationService';
+import { createSubTask } from '@/utils/taskUtils';
 
 export function TaskLibrary() {
   const [allTasks, setAllTasks] = useState<Task[]>([]);
@@ -142,6 +143,21 @@ export function TaskLibrary() {
         }}
         onEditProgress={handleEditProgress}
         onDeleteProgress={handleDeleteProgress}
+        onAddSubtask={(taskId, title) => {
+          const st = createSubTask(title);
+          storage.addSubTask(taskId, st);
+          notification.showSuccess('子任务已创建');
+          loadTasks();
+        }}
+        onToggleSubtask={(taskId, subtaskId, completed) => {
+          storage.toggleSubTask(taskId, subtaskId, completed);
+          loadTasks();
+        }}
+        onDeleteSubtask={(taskId, subtaskId) => {
+          storage.deleteSubTask(taskId, subtaskId);
+          notification.showInfo('子任务已删除');
+          loadTasks();
+        }}
       />
     );
   };

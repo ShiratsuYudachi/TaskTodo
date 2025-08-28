@@ -1,4 +1,4 @@
-import { Task, Event, ProgressEntry } from '@/types';
+import { Task, Event, ProgressEntry, SubTask } from '@/types';
 import { nanoid } from 'nanoid';
 
 /**
@@ -34,6 +34,23 @@ export function createProgressEntry(content: string, sessionDuration?: number): 
     content: content.trim(),
     timestamp: new Date(),
     sessionDuration,
+  };
+}
+
+/**
+ * 创建子任务
+ */
+export function createSubTask(title: string, overrides?: Partial<SubTask>): SubTask {
+  const now = new Date();
+  return {
+    id: nanoid(),
+    title: title.trim(),
+    status: overrides?.status || 'todo',
+    createdAt: now,
+    updatedAt: now,
+    deadline: overrides?.deadline,
+    priority: overrides?.priority,
+    ...overrides,
   };
 }
 
@@ -103,6 +120,7 @@ export function getDurationLabel(duration: Task['duration']): string {
 export function getStatusLabel(task: Task): string {
   if (task.status === 'completed') return '已完成';
   if (task.scheduledDate && isToday(task.scheduledDate)) return '今日计划';
+  if (task.subtasks && task.subtasks.some(st => st.status === 'completed')) return '有进展';
   if (task.progressHistory && task.progressHistory.length > 0) return '有进展';
   return '待开始';
 }
@@ -113,6 +131,7 @@ export function getStatusLabel(task: Task): string {
 export function getStatusColor(task: Task): string {
   if (task.status === 'completed') return 'green';
   if (task.scheduledDate && isToday(task.scheduledDate)) return 'blue';
+  if (task.subtasks && task.subtasks.length > 0) return 'cyan';
   if (task.progressHistory && task.progressHistory.length > 0) return 'cyan';
   return 'gray';
 }
@@ -129,6 +148,10 @@ function isToday(date: Date): boolean {
  * 获取任务最新进度
  */
 export function getLatestProgress(task: Task): string {
+  if (task.subtasks && task.subtasks.length > 0) {
+    const last = [...task.subtasks].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())[0];
+    return last ? last.title : '';
+  }
   if (!task.progressHistory || task.progressHistory.length === 0) return '';
   return task.progressHistory[task.progressHistory.length - 1].content;
 }
@@ -137,7 +160,9 @@ export function getLatestProgress(task: Task): string {
  * 获取任务总进度数量
  */
 export function getProgressCount(task: Task): number {
-  return task.progressHistory ? task.progressHistory.length : 0;
+  const progressCount = task.progressHistory ? task.progressHistory.length : 0;
+  const subCount = task.subtasks ? task.subtasks.length : 0;
+  return progressCount + subCount;
 }
 
 /**
@@ -230,9 +255,11 @@ export function filterTasks(
       const searchLower = filters.search.toLowerCase();
       const progressText = task.progressHistory ? 
         task.progressHistory.map(p => p.content).join(' ') : '';
+      const subText = task.subtasks ? task.subtasks.map(s => s.title).join(' ') : '';
       if (!task.title.toLowerCase().includes(searchLower) &&
           !task.description?.toLowerCase().includes(searchLower) &&
-          !progressText.toLowerCase().includes(searchLower)) {
+          !progressText.toLowerCase().includes(searchLower) &&
+          !subText.toLowerCase().includes(searchLower)) {
         return false;
       }
     }
