@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Group, TextInput, Button, HoverCard, Stack, Popover, ActionIcon, rem } from '@mantine/core';
-import { DatePickerInput } from '@mantine/dates';
-import { IconFlag3, IconClock, IconCalendar } from '@tabler/icons-react';
+import { Group, TextInput, Button, HoverCard, Stack, Popover, ActionIcon, rem, Tooltip } from '@mantine/core';
+import { DatePicker } from '@mantine/dates';
+import { IconFlag3, IconClock, IconCalendar, IconX } from '@tabler/icons-react';
 import { Task } from '@/types';
 import { createTask } from '@/utils/taskUtils';
 
@@ -85,19 +85,40 @@ export function InlineAddTaskRow({ onSubmit, width = 420 }: InlineAddTaskRowProp
 
       <Popover opened={dateOpened} onChange={setDateOpened} withinPortal position="bottom">
         <Popover.Target>
-          <ActionIcon variant="light" size="md" onClick={() => setDateOpened((o) => !o)}>
+          <ActionIcon
+            variant={deadline ? 'filled' : 'light'}
+            color={deadline ? 'blue' : undefined}
+            size="md"
+            onClick={() => setDateOpened((o) => !o)}
+            aria-label={deadline ? 'Due date selected' : 'Pick a due date'}
+          >
             <IconCalendar size={16} />
           </ActionIcon>
         </Popover.Target>
         <Popover.Dropdown>
-          <DatePickerInput
+          <DatePicker
             value={deadline}
-            onChange={setDeadline}
-            placeholder="Pick a date"
-            clearable
+            onChange={(d) => {
+              setDeadline(d);
+              if (d) setDateOpened(false);
+            }}
+            allowDeselect
           />
         </Popover.Dropdown>
       </Popover>
+      {deadline && (
+        <Tooltip label="清除日期">
+          <ActionIcon
+            variant="light"
+            color="red"
+            size="md"
+            onClick={() => setDeadline(null)}
+            aria-label="Clear due date"
+          >
+            <IconX size={16} />
+          </ActionIcon>
+        </Tooltip>
+      )}
 
       <Button size="xs" onClick={handleCreate} disabled={!title.trim()}>
         Add
