@@ -72,6 +72,18 @@ export function TaskLibrary() {
     loadTasks();
   };
 
+  const handleEditProgress = (taskId: string, progressId: string, newContent: string) => {
+    storage.editTaskProgress(taskId, progressId, newContent);
+    notification.showSuccess('进度已更新');
+    loadTasks();
+  };
+
+  const handleDeleteProgress = (taskId: string, progressId: string) => {
+    storage.deleteTaskProgress(taskId, progressId);
+    notification.showInfo('进度已删除');
+    loadTasks();
+  };
+
   const getTasksByStatus = (status: 'todo' | 'completed' | 'in_plan') => {
     if (status === 'todo') {
       return allTasks.filter(task => task.status === 'todo');
@@ -130,6 +142,8 @@ export function TaskLibrary() {
         onEdit={handleEditTask}
         onDelete={handleDeleteTask}
         onComplete={handleCompleteTask}
+        onEditProgress={handleEditProgress}
+        onDeleteProgress={handleDeleteProgress}
       />
     );
   };

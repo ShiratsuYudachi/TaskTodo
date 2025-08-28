@@ -19,6 +19,7 @@ import {
   IconEdit,
   IconTrash,
   IconCalendar,
+  IconX,
 } from '@tabler/icons-react';
 import { Task, ProgressEntry } from '@/types';
 import {
@@ -42,6 +43,8 @@ interface TaskCardProps {
   onComplete?: (taskId: string) => void;
   onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void; // 暂存任务
   onAddToPlanned?: (taskId: string) => void;
+  onEditProgress?: (taskId: string, progressId: string, newContent: string) => void;
+  onDeleteProgress?: (taskId: string, progressId: string) => void;
   showActions?: boolean;
   compact?: boolean;
 }
@@ -53,11 +56,15 @@ export function TaskCard({
   onComplete,
   onDeferTask,
   onAddToPlanned,
+  onEditProgress,
+  onDeleteProgress,
   showActions = true,
   compact = false,
 }: TaskCardProps) {
   const [progressInput, setProgressInput] = useState('');
   const [showProgressHistory, setShowProgressHistory] = useState(false);
+  const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState('');
   
   const isOverdue = isTaskOverdue(task);
   const daysUntilDeadline = task.deadline ? getDaysUntilDeadline(task.deadline) : null;
@@ -109,6 +116,30 @@ export function TaskCard({
     );
   };
 
+  const handleStartEditProgress = (progressId: string, currentContent: string) => {
+    setEditingProgressId(progressId);
+    setEditingContent(currentContent);
+  };
+
+  const handleSaveEditProgress = () => {
+    if (editingProgressId && editingContent.trim() && onEditProgress) {
+      onEditProgress(task.id, editingProgressId, editingContent.trim());
+      setEditingProgressId(null);
+      setEditingContent('');
+    }
+  };
+
+  const handleCancelEditProgress = () => {
+    setEditingProgressId(null);
+    setEditingContent('');
+  };
+
+  const handleDeleteProgress = (progressId: string) => {
+    if (onDeleteProgress) {
+      onDeleteProgress(task.id, progressId);
+    }
+  };
+
   const renderProgressHistory = () => {
     if (task.progressHistory.length === 0) {
       return (
@@ -122,19 +153,74 @@ export function TaskCard({
       <Stack gap="xs" mt="sm">
         {task.progressHistory.slice(-3).reverse().map((entry) => (
           <Card key={entry.id} padding="xs" withBorder radius="sm" bg="gray.0">
-            <Group justify="space-between" align="flex-start">
-              <Text size="xs" style={{ flex: 1 }}>
-                {entry.content}
-              </Text>
-              <Text size="xs" c="dimmed">
-                {new Date(entry.timestamp).toLocaleDateString('zh-CN', {
-                  month: 'numeric',
-                  day: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit',
-                })}
-              </Text>
-            </Group>
+            {editingProgressId === entry.id ? (
+              // 编辑模式
+              <Stack gap="xs">
+                <TextInput
+                  size="xs"
+                  value={editingContent}
+                  onChange={(e) => setEditingContent(e.target.value)}
+                  placeholder="修改进度记录..."
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      handleSaveEditProgress();
+                    } else if (e.key === 'Escape') {
+                      handleCancelEditProgress();
+                    }
+                  }}
+                  autoFocus
+                />
+                <Group justify="flex-end" gap="xs">
+                  <Button size="xs" variant="light" onClick={handleSaveEditProgress}>
+                    保存
+                  </Button>
+                  <Button size="xs" variant="subtle" onClick={handleCancelEditProgress}>
+                    取消
+                  </Button>
+                </Group>
+              </Stack>
+            ) : (
+              // 显示模式
+              <Group justify="space-between" align="flex-start">
+                <Text size="xs" style={{ flex: 1 }}>
+                  {entry.content}
+                </Text>
+                <Group gap="xs" align="center">
+                  <Text size="xs" c="dimmed">
+                    {new Date(entry.timestamp).toLocaleDateString('zh-CN', {
+                      month: 'numeric',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                  {showActions && (
+                    <>
+                      <Tooltip label="编辑">
+                        <ActionIcon
+                          size="xs"
+                          variant="subtle"
+                          color="blue"
+                          onClick={() => handleStartEditProgress(entry.id, entry.content)}
+                        >
+                          <IconEdit size={12} />
+                        </ActionIcon>
+                      </Tooltip>
+                      <Tooltip label="删除">
+                        <ActionIcon
+                          size="xs"
+                          variant="subtle"
+                          color="red"
+                          onClick={() => handleDeleteProgress(entry.id)}
+                        >
+                          <IconX size={12} />
+                        </ActionIcon>
+                      </Tooltip>
+                    </>
+                  )}
+                </Group>
+              </Group>
+            )}
           </Card>
         ))}
         

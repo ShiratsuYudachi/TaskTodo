@@ -12,6 +12,8 @@ interface TaskListProps {
   onComplete?: (taskId: string) => void;
   onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void;
   onAddToPlanned?: (taskId: string) => void;
+  onEditProgress?: (taskId: string, progressId: string, newContent: string) => void;
+  onDeleteProgress?: (taskId: string, progressId: string) => void;
   onRefresh?: () => void;
   onAddNew?: () => void;
   showActions?: boolean;
@@ -27,6 +29,8 @@ export function TaskList({
   onComplete,
   onDeferTask,
   onAddToPlanned,
+  onEditProgress,
+  onDeleteProgress,
   onRefresh,
   onAddNew,
   showActions = true,
@@ -78,6 +82,8 @@ export function TaskList({
               onComplete={onComplete}
               onDeferTask={onDeferTask}
               onAddToPlanned={onAddToPlanned}
+              onEditProgress={onEditProgress}
+              onDeleteProgress={onDeleteProgress}
               showActions={showActions}
               compact={compact}
             />

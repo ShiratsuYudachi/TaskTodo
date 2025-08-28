@@ -118,4 +118,29 @@ export class StorageService {
     state.config = { ...state.config, ...config };
     this.save(state);
   }
+
+  editTaskProgress(taskId: string, progressId: string, newContent: string): void {
+    const state = this.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task && task.progressHistory) {
+      const progressEntry = task.progressHistory.find(p => p.id === progressId);
+      if (progressEntry) {
+        progressEntry.content = newContent;
+        task.updatedAt = new Date();
+        this.save(state);
+      }
+    }
+  }
+
+  deleteTaskProgress(taskId: string, progressId: string): void {
+    const state = this.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task && task.progressHistory) {
+      task.progressHistory = task.progressHistory.filter(p => p.id !== progressId);
+      task.updatedAt = new Date();
+      this.save(state);
+    }
+  }
 }

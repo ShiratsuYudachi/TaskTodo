@@ -127,6 +127,18 @@ export function CandidatePool() {
     }
   };
 
+  const handleEditProgress = (taskId: string, progressId: string, newContent: string) => {
+    storage.editTaskProgress(taskId, progressId, newContent);
+    notification.showSuccess('进度已更新');
+    loadCandidates();
+  };
+
+  const handleDeleteProgress = (taskId: string, progressId: string) => {
+    storage.deleteTaskProgress(taskId, progressId);
+    notification.showInfo('进度已删除');
+    loadCandidates();
+  };
+
   const clearFilters = () => {
     setSearchQuery('');
     setPriorityFilter('');
@@ -288,6 +300,8 @@ export function CandidatePool() {
             onDelete={handleDeleteTask}
             onComplete={handleCompleteTask}
             onAddToPlanned={handleAddToPlanned}
+            onEditProgress={handleEditProgress}
+            onDeleteProgress={handleDeleteProgress}
           />
         </Paper>
       </Stack>

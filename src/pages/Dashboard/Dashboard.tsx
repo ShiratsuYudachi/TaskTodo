@@ -130,6 +130,18 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     setIsAddModalOpen(true);
   };
 
+  const handleEditProgress = (taskId: string, progressId: string, newContent: string) => {
+    storage.editTaskProgress(taskId, progressId, newContent);
+    notification.showSuccess('进度已更新');
+    loadData();
+  };
+
+  const handleDeleteProgress = (taskId: string, progressId: string) => {
+    storage.deleteTaskProgress(taskId, progressId);
+    notification.showInfo('进度已删除');
+    loadData();
+  };
+
   const statsCards = [
     {
       title: '总任务数',
@@ -228,6 +240,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 onDelete={handleDeleteTask}
                 onComplete={handleCompleteTask}
                 onDeferTask={handleDeferTask}
+                onEditProgress={handleEditProgress}
+                onDeleteProgress={handleDeleteProgress}
                 onRefresh={loadData}
                 onAddNew={() => onNavigate('candidate')}
               />
