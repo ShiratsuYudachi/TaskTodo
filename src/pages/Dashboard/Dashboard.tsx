@@ -75,17 +75,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     loadData();
   }, []);
 
-  const handleCompleteTask = (taskId: string) => {
-    scheduler.completeTask(taskId);
-    const state = storage.load();
-    const task = state.tasks.find(t => t.id === taskId);
-    
-    if (task) {
-      notification.showSuccess(`任务"${task.title}"已完成！`);
-    }
-    
-    loadData();
-  };
+  
 
   const handleDeferTask = (taskId: string, progressEntry: ProgressEntry) => {
     scheduler.deferTask(taskId, progressEntry);
@@ -236,7 +226,6 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 emptyText="今日暂无计划任务，试试从候选池添加一些任务吧！"
                 onEdit={handleEditTask}
                 onDelete={handleDeleteTask}
-                onComplete={handleCompleteTask}
                 onToggleComplete={(taskId, completed) => {
                   const state = storage.load();
                   const task = state.tasks.find(t => t.id === taskId);

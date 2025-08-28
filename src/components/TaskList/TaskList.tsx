@@ -9,7 +9,6 @@ interface TaskListProps {
   emptyText?: string;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
-  onComplete?: (taskId: string) => void;
   onToggleComplete?: (taskId: string, completed: boolean) => void;
   onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void;
   onAddToPlanned?: (taskId: string) => void;
@@ -27,7 +26,6 @@ export function TaskList({
   emptyText = '暂无任务',
   onEdit,
   onDelete,
-  onComplete,
   onDeferTask,
   onAddToPlanned,
   onEditProgress,
@@ -81,7 +79,6 @@ export function TaskList({
               task={task}
               onEdit={onEdit}
               onDelete={onDelete}
-              onComplete={onComplete}
               onToggleComplete={onToggleComplete}
               onDeferTask={onDeferTask}
               onAddToPlanned={onAddToPlanned}

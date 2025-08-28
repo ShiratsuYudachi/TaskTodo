@@ -40,7 +40,6 @@ interface TaskCardProps {
   task: Task;
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
-  onComplete?: (taskId: string) => void;
   onToggleComplete?: (taskId: string, completed: boolean) => void;
   onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void; // 暂存任务
   onAddToPlanned?: (taskId: string) => void;
@@ -54,7 +53,6 @@ export function TaskCard({
   task,
   onEdit,
   onDelete,
-  onComplete,
   onToggleComplete,
   onDeferTask,
   onAddToPlanned,
@@ -83,13 +81,9 @@ export function TaskCard({
     setProgressInput('');
   };
 
-  // 保留兼容：若上层仍传入 onComplete，我们通过圆圈触发
-
   const handleToggleCircle = () => {
     if (onToggleComplete) {
       onToggleComplete(task.id, !isCompleted);
-    } else if (!isCompleted && onComplete) {
-      onComplete(task.id);
     }
   };
 

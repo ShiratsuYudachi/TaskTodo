@@ -40,18 +40,7 @@ export function TaskLibrary() {
     loadTasks();
   }, []);
 
-  const handleCompleteTask = (taskId: string) => {
-    const task = allTasks.find(t => t.id === taskId);
-    
-    if (task) {
-      task.status = 'completed';
-      task.updatedAt = new Date();
-      notification.showSuccess(`任务"${task.title}"已完成！`);
-      
-      storage.saveTask(task);
-      loadTasks();
-    }
-  };
+  
 
   const handleEditTask = (task: Task) => {
     setEditingTask(task);
@@ -140,7 +129,6 @@ export function TaskLibrary() {
         emptyText={emptyText}
         onEdit={handleEditTask}
         onDelete={handleDeleteTask}
-        onComplete={handleCompleteTask}
         onToggleComplete={(taskId, completed) => {
           const state = storage.load();
           const task = state.tasks.find(t => t.id === taskId);
