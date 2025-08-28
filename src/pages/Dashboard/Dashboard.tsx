@@ -40,6 +40,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     inProgressTasks: 0,
     overdueTaskCount: 0,
   });
+  // 预留标签筛选（暂未呈现UI），保留为将来扩展
+  const [tagFilter] = useState<string[]>([]);
 
   const scheduler = new TaskScheduler();
   const storage = new StorageService();
@@ -54,8 +56,11 @@ export function Dashboard({ onNavigate }: DashboardProps) {
     setPlannedTasks(planned);
 
     // 获取推荐任务
-    const recommended = scheduler.recommendDailyTasks().slice(0, 4);
-    setRecommendedTasks(recommended);
+    let recommended = scheduler.recommendDailyTasks();
+    if (tagFilter.length > 0) {
+      recommended = recommended.filter(t => (t.tags || []).some(tag => tagFilter.includes(tag)));
+    }
+    setRecommendedTasks(recommended.slice(0, 4));
 
     // 计算统计数据
     const state = storage.load();
@@ -177,6 +182,8 @@ export function Dashboard({ onNavigate }: DashboardProps) {
             >
               刷新
             </Button>
+            {/* 标签筛选（简版）可后续挪到设置区 */}
+            {/* 由于头部空间有限，先跳过 UI 控件，保留逻辑入口 */}
             <InlineAddTaskRow
               onSubmit={(task) => {
                 storage.saveTask(task);
@@ -184,6 +191,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                 loadData();
               }}
               width={520}
+              suggestedTags={storage.getAllTags()}
             />
           </Group>
         </Group>
@@ -336,6 +344,7 @@ export function Dashboard({ onNavigate }: DashboardProps) {
         }}
         onSubmit={handleTaskSubmit}
         editTask={editingTask}
+        suggestedTags={storage.getAllTags()}
       />
     </Container>
   );

@@ -10,6 +10,7 @@ import {
   Card,
   Select,
   TextInput,
+  MultiSelect,
 } from '@mantine/core';
 import {
   IconSearch,
@@ -36,6 +37,7 @@ export function CandidatePool() {
   const [priorityFilter, setPriorityFilter] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [sortBy, setSortBy] = useState<string>('score');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
 
   const scheduler = new TaskScheduler();
   const storage = new StorageService();
@@ -58,6 +60,7 @@ export function CandidatePool() {
     if (searchQuery) filters.search = searchQuery;
     if (priorityFilter) filters.priority = [parseInt(priorityFilter)];
     if (statusFilter) filters.status = [statusFilter as Task['status']];
+    if (tagFilter.length > 0) filters.tags = tagFilter;
 
     filtered = filterTasks(filtered, filters);
 
@@ -221,6 +224,16 @@ export function CandidatePool() {
                 clearable
               />
             </Grid.Col>
+            <Grid.Col span={{ base: 12, sm: 6, md: 3 }}>
+              <MultiSelect
+                placeholder="按标签筛选"
+                data={storage.getAllTags()}
+                value={tagFilter}
+                onChange={setTagFilter}
+                searchable
+                clearable
+              />
+            </Grid.Col>
             <Grid.Col span={{ base: 12, sm: 6, md: 2 }}>
               <Select
                 placeholder="排序方式"
@@ -331,6 +344,7 @@ export function CandidatePool() {
         }}
         onSubmit={handleTaskSubmit}
         editTask={editingTask}
+        suggestedTags={storage.getAllTags()}
       />
     </Container>
   );

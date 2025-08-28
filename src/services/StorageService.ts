@@ -161,6 +161,14 @@ export class StorageService {
     this.save(state);
   }
 
+  // ----- Tags utilities -----
+  getAllTags(): string[] {
+    const state = this.load();
+    const set = new Set<string>();
+    state.tasks.forEach((t) => (t.tags || []).forEach(tag => set.add(tag)));
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }
+
   editSubTask(taskId: string, subtaskId: string, updates: Partial<SubTask>): void {
     const state = this.load();
     const task = state.tasks.find(t => t.id === taskId);

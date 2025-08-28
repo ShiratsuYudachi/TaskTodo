@@ -18,6 +18,7 @@ interface AddTaskModalProps {
   onClose: () => void;
   onSubmit: (task: Task) => void;
   editTask?: Task | null;
+  suggestedTags?: string[];
 }
 
 export function AddTaskModal({
@@ -25,6 +26,7 @@ export function AddTaskModal({
   onClose,
   onSubmit,
   editTask,
+  suggestedTags = [],
 }: AddTaskModalProps) {
   const [formData, setFormData] = useState({
     title: '',
@@ -175,6 +177,9 @@ export function AddTaskModal({
             placeholder="添加标签"
             value={formData.tags}
             onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+            data={suggestedTags}
+            clearable
+            splitChars={[',',';',' ']}
           />
 
           <TagsInput

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Group, TextInput, Button, HoverCard, Stack, Popover, ActionIcon, rem, Tooltip } from '@mantine/core';
+import { Group, TextInput, Button, HoverCard, Stack, Popover, ActionIcon, rem, Tooltip, TagsInput } from '@mantine/core';
 import { DatePicker } from '@mantine/dates';
 import { IconFlag3, IconClock, IconCalendar, IconX } from '@tabler/icons-react';
 import { Task } from '@/types';
@@ -8,14 +8,16 @@ import { createTask } from '@/utils/taskUtils';
 interface InlineAddTaskRowProps {
   onSubmit: (task: Task) => void;
   width?: number | string;
+  suggestedTags?: string[];
 }
 
-export function InlineAddTaskRow({ onSubmit, width = 420 }: InlineAddTaskRowProps) {
+export function InlineAddTaskRow({ onSubmit, width = 420, suggestedTags = [] }: InlineAddTaskRowProps) {
   const [title, setTitle] = useState('');
   const [priority, setPriority] = useState<number>(3);
   const [duration, setDuration] = useState<Task['duration']>('short');
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [dateOpened, setDateOpened] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
 
   const handleCreate = () => {
     const trimmed = title.trim();
@@ -26,12 +28,14 @@ export function InlineAddTaskRow({ onSubmit, width = 420 }: InlineAddTaskRowProp
       duration,
       deadline: deadline || undefined,
       status: 'todo',
+      tags,
     });
     onSubmit(task);
     setTitle('');
     setPriority(3);
     setDuration('short');
     setDeadline(null);
+    setTags([]);
   };
 
   return (
@@ -106,6 +110,16 @@ export function InlineAddTaskRow({ onSubmit, width = 420 }: InlineAddTaskRowProp
           />
         </Popover.Dropdown>
       </Popover>
+      <TagsInput
+        placeholder="Tags"
+        value={tags}
+        onChange={setTags}
+        data={suggestedTags}
+        size="xs"
+        clearable
+        splitChars={[',',';',' ']}
+        style={{ minWidth: rem(160) }}
+      />
       {deadline && (
         <Tooltip label="清除日期">
           <ActionIcon

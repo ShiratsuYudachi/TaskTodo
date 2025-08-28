@@ -9,6 +9,7 @@ import {
   Stack,
   Tabs,
   Badge,
+  MultiSelect,
 } from '@mantine/core';
 import {
   IconRefresh,
@@ -28,6 +29,7 @@ export function TaskLibrary() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [activeTab, setActiveTab] = useState<string>('all');
+  const [tagFilter, setTagFilter] = useState<string[]>([]);
 
   const storage = new StorageService();
   const notification = new NotificationService();
@@ -123,6 +125,9 @@ export function TaskLibrary() {
         tasks = allTasks;
     }
 
+    if (tagFilter.length > 0) {
+      tasks = tasks.filter(t => (t.tags || []).some(tag => tagFilter.includes(tag)));
+    }
     return (
       <TaskList
         title=""
@@ -193,6 +198,7 @@ export function TaskLibrary() {
                 loadTasks();
               }}
               width={520}
+              suggestedTags={storage.getAllTags()}
             />
           </Group>
         </Group>
@@ -295,6 +301,16 @@ export function TaskLibrary() {
                   {getTasksWithDeadline().length}
                 </Badge>
               </Tabs.Tab>
+              <div style={{ marginLeft: 'auto', paddingRight: 12, minWidth: 240 }}>
+                <MultiSelect
+                  placeholder="按标签筛选"
+                  data={storage.getAllTags()}
+                  value={tagFilter}
+                  onChange={setTagFilter}
+                  searchable
+                  clearable
+                />
+              </div>
             </Tabs.List>
 
             <Tabs.Panel value={activeTab} pt="lg">
@@ -313,6 +329,7 @@ export function TaskLibrary() {
         }}
         onSubmit={handleTaskSubmit}
         editTask={editingTask}
+        suggestedTags={storage.getAllTags()}
       />
     </Container>
   );
