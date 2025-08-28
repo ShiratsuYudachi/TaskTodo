@@ -1,0 +1,32 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 自定义样式 */
+:root {
+  --color-priority-0: #ef4444; /* 最高优先级 - 红色 */
+  --color-priority-1: #f97316; /* 高优先级 - 橙色 */
+  --color-priority-2: #eab308; /* 中优先级 - 黄色 */
+  --color-priority-3: #22c55e; /* 低优先级 - 绿色 */
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #f8fafc;
+}
+
+/* 优先级颜色类 */
+.priority-0 { color: var(--color-priority-0); }
+.priority-1 { color: var(--color-priority-1); }
+.priority-2 { color: var(--color-priority-2); }
+.priority-3 { color: var(--color-priority-3); }
+
+.bg-priority-0 { background-color: var(--color-priority-0); }
+.bg-priority-1 { background-color: var(--color-priority-1); }
+.bg-priority-2 { background-color: var(--color-priority-2); }
+.bg-priority-3 { background-color: var(--color-priority-3); }
