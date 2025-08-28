@@ -299,6 +299,17 @@ export function CandidatePool() {
             onEdit={handleEditTask}
             onDelete={handleDeleteTask}
             onComplete={handleCompleteTask}
+            onToggleComplete={(taskId, completed) => {
+              const state = storage.load();
+              const task = state.tasks.find(t => t.id === taskId);
+              if (task) {
+                task.status = completed ? 'completed' : 'todo';
+                task.updatedAt = new Date();
+                storage.saveTask(task);
+                notification.showSuccess(completed ? '任务已完成' : '已恢复为未完成');
+                loadCandidates();
+              }
+            }}
             onAddToPlanned={handleAddToPlanned}
             onEditProgress={handleEditProgress}
             onDeleteProgress={handleDeleteProgress}

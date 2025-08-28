@@ -41,6 +41,7 @@ interface TaskCardProps {
   onEdit?: (task: Task) => void;
   onDelete?: (taskId: string) => void;
   onComplete?: (taskId: string) => void;
+  onToggleComplete?: (taskId: string, completed: boolean) => void;
   onDeferTask?: (taskId: string, progressEntry: ProgressEntry) => void; // 暂存任务
   onAddToPlanned?: (taskId: string) => void;
   onEditProgress?: (taskId: string, progressId: string, newContent: string) => void;
@@ -54,6 +55,7 @@ export function TaskCard({
   onEdit,
   onDelete,
   onComplete,
+  onToggleComplete,
   onDeferTask,
   onAddToPlanned,
   onEditProgress,
@@ -81,9 +83,14 @@ export function TaskCard({
     setProgressInput('');
   };
 
-  const handleCompleteTask = () => {
-    if (!onComplete) return;
-    onComplete(task.id);
+  // 保留兼容：若上层仍传入 onComplete，我们通过圆圈触发
+
+  const handleToggleCircle = () => {
+    if (onToggleComplete) {
+      onToggleComplete(task.id, !isCompleted);
+    } else if (!isCompleted && onComplete) {
+      onComplete(task.id);
+    }
   };
 
   const renderDeadlineInfo = () => {
@@ -236,16 +243,38 @@ export function TaskCard({
   return (
     <Card
       shadow="sm"
-      padding={compact ? "sm" : "md"}
+      padding={"sm"}
       radius="md"
       withBorder
       className={`transition-all duration-200 hover:shadow-md ${
         isOverdue ? 'border-red-300 bg-red-50' : ''
       } ${isCompleted ? 'opacity-60' : ''}`}
     >
-      <Stack gap="sm">
+      <Stack gap="xs">
         {/* 任务头部信息 */}
-        <Group justify="space-between" align="flex-start">
+        <Group justify="space-between" align="center">
+          {/* 完成圆圈 */}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            <button
+              aria-label={isCompleted ? 'Mark as todo' : 'Mark as completed'}
+              onClick={handleToggleCircle}
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                border: `2px solid ${isCompleted ? '#16a34a' : '#cbd5e1'}`,
+                background: isCompleted ? '#16a34a' : 'transparent',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginRight: 10,
+                cursor: 'pointer',
+              }}
+            >
+              {isCompleted && <IconCheck size={12} color="#fff" />}
+            </button>
+          </div>
+
           <div className="flex-1 min-w-0">
             <Group gap="xs" mb="xs">
               <Badge
@@ -296,9 +325,38 @@ export function TaskCard({
             {renderDeadlineInfo()}
           </div>
 
-          {/* 编辑和删除操作 */}
+          {/* 右侧操作区：主要按钮和编辑删除同一行 */}
           {showActions && (
-            <Group gap="xs">
+            <Group gap="xs" wrap="nowrap" align="center">
+              {!isCompleted && !inTodayPlan && onAddToPlanned && (
+                <Button
+                  size="xs"
+                  variant="light"
+                  leftSection={<IconCalendar size={14} />}
+                  onClick={() => onAddToPlanned(task.id)}
+                >
+                  加入计划
+                </Button>
+              )}
+              {!isCompleted && inTodayPlan && onDeferTask && (
+                <Button
+                  size="xs"
+                  variant="outline"
+                  leftSection={<IconClock size={14} />}
+                  onClick={() => {
+                    if (progressInput.trim()) {
+                      const progressEntry = createProgressEntry(progressInput.trim());
+                      onDeferTask(task.id, progressEntry);
+                      setProgressInput('');
+                    } else {
+                      const progressEntry = createProgressEntry('今日部分完成');
+                      onDeferTask(task.id, progressEntry);
+                    }
+                  }}
+                >
+                  今日完成
+                </Button>
+              )}
               {onEdit && (
                 <Tooltip label="编辑任务">
                   <ActionIcon 
@@ -358,55 +416,7 @@ export function TaskCard({
           {renderProgressHistory()}
         </Collapse>
 
-        {/* 主要操作按钮 */}
-        {showActions && !isCompleted && (
-          <Group justify="flex-end" gap="sm">
-            {/* 添加到今日计划按钮 */}
-            {!inTodayPlan && onAddToPlanned && (
-              <Button
-                size="xs"
-                variant="light"
-                leftSection={<IconCalendar size={14} />}
-                onClick={() => onAddToPlanned(task.id)}
-              >
-                加入计划
-              </Button>
-            )}
-            
-            {/* 暂存按钮 - 仅在今日计划中显示 */}
-            {inTodayPlan && onDeferTask && (
-              <Button
-                size="xs"
-                variant="outline"
-                leftSection={<IconClock size={14} />}
-                onClick={() => {
-                  if (progressInput.trim()) {
-                    // 如果有输入内容，保存进度并暂存
-                    const progressEntry = createProgressEntry(progressInput.trim());
-                    onDeferTask(task.id, progressEntry);
-                    setProgressInput('');
-                  } else {
-                    // 没有输入内容，直接暂存
-                    const progressEntry = createProgressEntry('今日部分完成');
-                    onDeferTask(task.id, progressEntry);
-                  }
-                }}
-              >
-                今日完成
-              </Button>
-            )}
-
-            {/* 完成按钮 */}
-            <Button
-              size="xs"
-              color="green"
-              leftSection={<IconCheck size={14} />}
-              onClick={handleCompleteTask}
-            >
-              完成任务
-            </Button>
-          </Group>
-        )}
+        {/* 底部主要操作区移除：按钮已放到顶部同一行 */}
       </Stack>
     </Card>
   );
