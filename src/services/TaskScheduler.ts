@@ -31,7 +31,7 @@ export class TaskScheduler {
 
   /**
    * 计算任务优先级分数
-   * 考虑：基础优先级、截止时间紧急程度、饥饿问题、持续时间、近期活跃度
+   * 考虑：基础优先级、截止时间紧急程度、饥饿问题、持续时间、近期活跃度、Snooze惩罚
    */
   private calculateTaskScore(task: Task, config: SchedulingConfig): number {
     const now = new Date();
@@ -92,6 +92,28 @@ export class TaskScheduler {
       
       if (daysSinceLatestProgress <= 2) {
         score -= 3; // 近期有进展，稍微降低优先级
+      }
+    }
+
+    // 😴 Snooze 惩罚：降低被推迟任务的优先级
+    if (task.snoozedAt) {
+      const hoursSinceSnoozed = (now.getTime() - task.snoozedAt.getTime()) / (1000 * 60 * 60);
+      const snoozeCount = task.snoozeCount || 1;
+      
+      // 基础snooze惩罚：被推迟后的几小时内大幅降低分数
+      if (hoursSinceSnoozed <= 2) {
+        score -= 15 * snoozeCount; // 前2小时重度惩罚，多次推迟惩罚翻倍
+      } else if (hoursSinceSnoozed <= 8) {
+        score -= 10 * snoozeCount; // 8小时内中度惩罚
+      } else if (hoursSinceSnoozed <= 24) {
+        score -= 5 * snoozeCount; // 24小时内轻度惩罚
+      }
+      
+      // 渐进式恢复：超过24小时后逐渐减少惩罚
+      if (hoursSinceSnoozed > 24) {
+        const daysRecovery = Math.floor((hoursSinceSnoozed - 24) / 24);
+        const remainingPenalty = Math.max(0, 3 * snoozeCount - daysRecovery);
+        score -= remainingPenalty;
       }
     }
 
@@ -232,6 +254,22 @@ export class TaskScheduler {
       
       // 从今日计划中移除
       this.removeFromPlannedTasks(taskId);
+      
+      this.storage.saveTask(task);
+    }
+  }
+
+  /**
+   * 推迟任务：记录推迟时间和次数，通过优先级计算降低其调度概率
+   */
+  snoozeTask(taskId: string): void {
+    const state = this.storage.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+      task.snoozedAt = new Date();
+      task.snoozeCount = (task.snoozeCount || 0) + 1;
+      task.updatedAt = new Date();
       
       this.storage.saveTask(task);
     }

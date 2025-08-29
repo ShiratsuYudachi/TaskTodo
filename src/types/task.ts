@@ -36,6 +36,8 @@ export interface Task extends BaseItem {
   scheduledDate?: Date; // 被调度到计划清单的日期
   lastScheduled?: Date; // 上次被调度的时间
   lastWorkedOn?: Date; // 最后一次工作时间（用于降低近期活跃任务优先级）
+  snoozedAt?: Date; // 任务被推迟的时间，用于动态调整优先级分数
+  snoozeCount?: number; // 被推迟的次数，多次推迟会有更大的惩罚
 }
 
 export interface Event extends BaseItem {

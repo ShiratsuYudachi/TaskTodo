@@ -18,6 +18,7 @@ import {
   IconTarget,
   IconClock,
   IconTrendingUp,
+  IconZzz,
 } from '@tabler/icons-react';
 import { Task, ProgressEntry } from '@/types';
 import { TaskList, AddTaskModal, InlineAddTaskRow } from '@/components';
@@ -113,6 +114,20 @@ export function Dashboard({ onNavigate }: DashboardProps) {
   const handleAddToPlanned = (taskId: string) => {
     scheduler.addToPlannedTasks(taskId);
     notification.showSuccess('任务已添加到今日计划');
+    loadData();
+  };
+
+  const handleSnoozeTask = (taskId: string) => {
+    scheduler.snoozeTask(taskId);
+    const state = storage.load();
+    const task = state.tasks.find(t => t.id === taskId);
+    
+    if (task) {
+      const snoozeCount = task.snoozeCount || 1;
+      const countText = snoozeCount === 1 ? '' : `（第${snoozeCount}次）`;
+      notification.showInfo(`任务"${task.title}"已被推迟${countText}，优先级将降低`);
+    }
+    
     loadData();
   };
 
@@ -324,14 +339,30 @@ export function Dashboard({ onNavigate }: DashboardProps) {
                                task.duration === 'medium' ? '中' :
                                task.duration === 'long' ? '长' : '持续'}
                             </Badge>
+                            {task.snoozedAt && (
+                              <Badge size="xs" color="orange" variant="light">
+                                😴 {task.snoozeCount}
+                              </Badge>
+                            )}
                           </Group>
                         </div>
-                        <Button
-                          size="xs"
-                          onClick={() => handleAddToPlanned(task.id)}
-                        >
-                          添加
-                        </Button>
+                        <Group gap="xs">
+                          <ActionIcon 
+                            size="sm" 
+                            variant="subtle" 
+                            color="gray"
+                            title="推迟任务（降低优先级）"
+                            onClick={() => handleSnoozeTask(task.id)}
+                          >
+                            <IconZzz size={14} />
+                          </ActionIcon>
+                          <Button
+                            size="xs"
+                            onClick={() => handleAddToPlanned(task.id)}
+                          >
+                            添加
+                          </Button>
+                        </Group>
                       </Group>
                     </Card>
                   ))}
